@@ -459,11 +459,14 @@ void Emulator::RR(Byte& target, bool carry, bool zero_flag)
 	set_flag(FLAG_CARRY, (bit1 != 0));
 }
 
+//RR[HL]
 void Emulator::RR(Address addr, bool carry)
 {
 	Byte value = readMemory(addr);
 	RR(value, carry, true);
 	writeMemory(addr, value);
+
+	return;
 }
 
 //?????

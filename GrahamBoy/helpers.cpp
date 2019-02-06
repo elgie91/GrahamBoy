@@ -32,11 +32,11 @@ Byte getBitVal(Word value, Byte shift)
 	return ((value >> shift) & 0x1 == 1) ? 1 : 0;
 }
 
-Byte highNibble(Byte value)
+Byte lowNibble(Byte value)
 {
 	return (value & 0xF);
 }
-Byte lowNibble(Byte value)
+Byte highNibble(Byte value)
 {
 	return ( (value>>4) & 0xF);
 }

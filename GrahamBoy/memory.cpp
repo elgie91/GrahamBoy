@@ -57,7 +57,7 @@ void Emulator::writeMemory(Word address, Byte data)
 	else if (address == TMC)
 	{
 		Byte currentFreq = getClockFreq();
-		memory[address] = TMC; //update the frequency
+		memory[address] = data; //update the frequency
 		Byte newFreq = getClockFreq();
 
 		if (newFreq != currentFreq)
@@ -88,6 +88,9 @@ void Emulator::writeMemory(Word address, Byte data)
 	else if ((address >= 0xFF4C) && (address <= 0xFF7F))
 		return;
 
+	else if (address == 0xFFF0) //Joypad
+		memory[address] = data;// &0x30;
+
 	else
 		memory[address] = data;
 
@@ -113,6 +116,9 @@ Byte Emulator::readMemory(Word address) const
 		/*4000 in HEX = 2 * 2^16 = 2KB, each bank is 2KB, so we jump by 2000 for each bank chunk*/
 		return ramBank[newAddress + (currentRamBank * 0x2000)]; 
 	}
+
+	else if (address == 0xFF00)
+		return getJoypadState();
 
 	else
 		return memory[address];

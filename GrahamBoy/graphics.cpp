@@ -24,6 +24,7 @@ void Emulator::updateGraphics(int cyc)
 	else
 		return;
 
+
 	if (scanlineCounter <= 0)
 	{
 		scanlineCounter = 456;
@@ -31,19 +32,24 @@ void Emulator::updateGraphics(int cyc)
 		/*increase the scanline --> cannot use WriteMemory because when the game tries
 		to write to 0xFF44 it resets the current scaline to 0*/
 		Byte currentLine = readMemory(0xFF44);
-		memory[0xFF44] += 1;
 		
-
 		//entered VBlank period
-		if (currentLine == 144)
-			requestInterrupt(INTERRUPT_VBLANK);
-
-		else if (currentLine > 153) //went past 153, need to reset
-			memory[0xFF44] = 0; //reset the scanline
-
-		else if (currentLine < 144) //not @ end or b/w VBlank period
+		if (currentLine <= 144) //not @ end or b/w VBlank period
 			drawScanLine();
 
+		if (currentLine == 144)
+		{
+			requestInterrupt(INTERRUPT_VBLANK);
+			renderScreen();
+		}
+
+		if (readMemory(0xFF44) > 153) //@ 153, need to reset
+		{
+			memory[0xFF44] = 0; //reset the scanline
+			return;
+		}
+
+		memory[0xFF44] += 1;
 	}
 
 	return;
@@ -51,33 +57,41 @@ void Emulator::updateGraphics(int cyc)
 
 void Emulator::renderScreen()
 {
-	SDL_Rect rec;
-	rec.w = width * 5; rec.h = height * 5; rec.x = 0; rec.y = 0;
-
 	//need to use surfaces b/c overlapping background/sprites/window together which apparently can't be done on textures
-	SDL_Surface * bgSurf = SDL_CreateRGBSurfaceFrom((void*) bgData, 160, 144, 32, 160 * sizeof(int), 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+	SDL_LockSurface(bgSurf);
+	int * pixels = (int *)bgSurf->pixels;
+	for (int i = 0; i < 160; i++)
+	{
+		for (int j = 0; j < 144; j++)
+		{
+			if (pixels[j* bgSurf->w + i] != bgData[i + j * width])
+				pixels[j* bgSurf->w + i] = bgData[i + j * width];
+		}
+	}
+	SDL_UnlockSurface(bgSurf);
 
-	SDL_Surface * windowSurf = SDL_CreateRGBSurfaceFrom((void*) windowData, 160, 144, 32, 160 * sizeof (int), 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+	/*SDL_LockSurface(windowSurf);
+	windowSurf = SDL_CreateRGBSurfaceFrom((void*) windowData, 160, 144, 32, 160 * sizeof (int), 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+	SDL_UnlockSurface(windowSurf);*/
+
+
 	//SDL_SetColorKey(spriteSurf, SDL_TRUE, SDL_MapRGB(spriteSurf->format,255, 255, 255));
 	//SDL_Surface * windowSurf = SDL_CreateRGBSurfaceFrom(windowArray, 160, 144, 32, 160 * sizeof(int), 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
 	//SDL_SetColorKey(windowSurf, SDL_TRUE, SDL_MapRGBA(windowSurf->format, 0xFF, 0xFF, 0xFF, 255));
-	SDL_Surface * screenSurface = SDL_GetWindowSurface(window);
-	//SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0, 0, 0));
+
 
 	//Apply the image --> blit onto the screenSurface
 	SDL_BlitScaled(bgSurf, NULL, screenSurface, &rec);
 	//SDL_BlitScaled(spriteSurf, NULL, screenSurface, &rec);
-	SDL_BlitScaled(windowSurf, NULL, screenSurface, &rec);
-
-	//windowTexture = SDL_CreateTextureFromSurface(renderer, screenSurface);
+	//SDL_BlitScaled(windowSurf, NULL, screenSurface, &rec);
 
 	//Update the surface
 	SDL_UpdateWindowSurface(window);
 
-	SDL_FreeSurface(bgSurf);
-	//SDL_FreeSurface(spriteSurf);
-	SDL_FreeSurface(windowSurf);
-	SDL_FreeSurface(screenSurface);
+	/*SDL_UpdateTexture(texture, NULL, bgData, width * sizeof(Uint32));
+	SDL_RenderClear(renderer);
+	SDL_RenderCopy(renderer, texture, NULL, NULL);
+	SDL_RenderPresent(renderer);*/
 	
 	return;
 }
@@ -97,9 +111,7 @@ void Emulator::initDisplay()
 	if (renderer == NULL)
 		exit(-1);
 	
-	SDL_RenderSetScale(renderer, scale, scale); 
-
-	//texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGB888, SDL_TEXTUREACCESS_TARGET, width, height);
+	//SDL_RenderSetScale(renderer, scale, scale); 
 	
 	//Attempt to set texture filtering to linear
 	if (!SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"))
@@ -108,6 +120,19 @@ void Emulator::initDisplay()
 	memset(bgData, 0xFFFFFFFF, width * height * sizeof(int)); //RGBA 255,255,255,255 ==> White
 	memset(windowData, 0x00000000, width * height * sizeof(int)); //RGBA 0 ==> Black
 	memset(spriteData, 0x00000000, width * height * sizeof(int)); //RGBA 0 ==> Black
+
+	screenSurface = SDL_GetWindowSurface(window);
+	bgSurf = SDL_CreateRGBSurfaceFrom((void*)bgData, 160, 144, 32, 160 * sizeof(int), 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+	windowSurf = SDL_CreateRGBSurfaceFrom((void*)windowData, 160, 144, 32, 160 * sizeof(int), 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+
+	rec.w = width * 5; rec.h = height * 5; rec.x = 0; rec.y = 0;
+	//SDL_BlitScaled(bgSurf, NULL, screenSurface, &rec);
+	
+
+	//Update the surface
+	SDL_UpdateWindowSurface(window);
+
+	//texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width, height);
 
 
 	return;
@@ -157,7 +182,7 @@ void Emulator::setLCDStatus()
 	Byte currentLine = readMemory(0xFF44);
 	Byte currentMode = status & 0x3; //take the first two bits
 
-	Byte newMode;
+	Byte newMode = 0;
 	bool reqInterrupt = false;
 
 	//check if Vblank period
@@ -289,7 +314,7 @@ void Emulator::drawScanLine()
 	if (testBit(control, 1))
 		renderSprites();
 	
-	renderScreen(); //does the actual drawing
+	//renderScreen(); //does the actual drawing
 	return;
 }
 
@@ -302,7 +327,7 @@ void Emulator::renderBackground()
 	bool unsig = true;
 
 	backgroundLocation = testBit(lcdControl, 3) ? 0x9C00 : 0x9800;
-	tileLocation = testBit(lcdControl, 4) ? 0x8000 : 0x8800;
+	tileLocation = testBit(lcdControl, 4) ? 0x8000 : 0x9000;
 	
 	//check tile data
 	if (!testBit(lcdControl, 4))
@@ -330,8 +355,8 @@ void Emulator::renderBackground()
 		int map_y = (int)scrollY + y;
 
 		// wrap around if the map_x is > than the 256x256 background map
-		map_x = (map_x > 256) ? (map_x - 256) : map_x;
-		map_y = (map_y > 256) ? (map_y - 256) : map_y;
+		map_x = (map_x >= 256) ? (map_x - 256) : map_x;
+		map_y = (map_y >= 256) ? (map_y - 256) : map_y;
 
 		//2. Get the tile ID where that pixel is located
 		int tile_col = map_x / 8;
@@ -621,4 +646,12 @@ int Emulator::getColour(Byte palette, Byte top, Byte bottom, int bit, bool isSpr
 		default: return 0xFFFFFF; break;
 	}
 
+}
+
+void Emulator::destroySDL()
+{
+	SDL_FreeSurface(bgSurf);
+	//SDL_FreeSurface(spriteSurf);
+	SDL_FreeSurface(windowSurf);
+	SDL_FreeSurface(screenSurface);
 }

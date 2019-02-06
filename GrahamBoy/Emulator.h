@@ -7,16 +7,6 @@
 #define TMA 0xFF06 //timer modulator (sets the frequency)
 #define TMC 0xFF07 //timer controller (enables/disables timer)
 
-/*#define INTERRUPT_VBLANK 0 //V-Blank interrupt
-#define INTERRUPT_LCD 1 //LCD interrupt
-#define INTERRUPT_TIMER 2 //timer interrupt
-#define INTERRUPT_JOYPAD 4 //joypad interrupt*/
-
-/*#define VBlank 0x40
-#define LCD  0x48
-#define TIMER 0x50
-#define JOYPAD 0x60*/
-
 class Emulator
 {
 public:
@@ -51,6 +41,13 @@ private:
 	int bgData [144 * 160]; //first part is the screen y axis. The second is the x axis and the third is the colour (three elements for red, green and blue), last = alpha
 	Byte windowData [144 * 160]; //first part is the screen y axis. The second is the x axis and the third is the colour (three elements for red, green and blue), last = alpha
 	Byte spriteData [144][160][4]; //first part is the screen y axis. The second is the x axis and the third is the colour (three elements for red, green and blue), last = alpha
+	
+	SDL_Rect rec;
+	SDL_Surface * bgSurf;
+	SDL_Surface * windowSurf;
+	SDL_Surface * spriteSurf;
+	SDL_Texture * texture;
+
 
 	Byte memory[0x10000];
 	
@@ -141,11 +138,19 @@ private:
 	void renderSprites();
 	int getColour(Byte palette, Byte top, Byte bottom, int bit, bool isSprite);
 	void initDisplay();
+	void destroySDL();
 
 	SDL_Window * window;
 	SDL_Renderer * renderer;
-	
+	SDL_Surface * screenSurface;
+	SDL_Event e;
+
+	Byte joypadButtons;
+	Byte joypadDirections;
 	void handleEvents();
+	void keyPressed(int key);
+	void keyReleased(int key);
+	Byte getJoypadState() const;
 
 
 	//CPU INSTRS
@@ -191,9 +196,9 @@ private:
 	void SL(Address addr);
 	void SR(Byte & target, bool include_top_bit);
 	void SR(Address addr, bool include_top_bit);
-	void RL(Byte & target, bool carry, bool zero_flag);
+	void RL(Byte & target, bool carry, bool zero_flag = false);
 	void RL(Address addr, bool carry);
-	void RR(Byte & target, bool carry, bool zero_flag);
+	void RR(Byte & target, bool carry, bool zero_flag = false);
 	void RR(Address addr, bool carry);
 	void SRA(Byte & target);
 	void SRA(Address addr);
