@@ -88,8 +88,8 @@ void Emulator::writeMemory(Word address, Byte data)
 	else if ((address >= 0xFF4C) && (address <= 0xFF7F))
 		return;
 
-	else if (address == 0xFFF0) //Joypad
-		memory[address] = data;// &0x30;
+	else if (address == 0xFF00) //Joypad
+		memory[address] = data & 0x30;
 
 	else
 		memory[address] = data;
