@@ -9,7 +9,7 @@
 Emulator::Emulator()
 {
 	memset(cartridgeMemory, 0, sizeof(cartridgeMemory));
-	memset(ramBank, 0, sizeof(ramBank));
+	memset(&ramBank, 0, sizeof(ramBank));
 	quit = false;
 
 	reg_AF.reg = 0x01B0;
@@ -178,6 +178,8 @@ void Emulator::run()
 	#ifdef TEST
 		fclose(fp);
 	#endif
+
+	destroySDL();
 }
 
 
@@ -351,46 +353,77 @@ void Emulator::handleEvents()
 			case SDL_KEYDOWN:
 			{
 				if (e.key.repeat != 0) break;
-				//const uint8_t * buttonPressed = SDL_GetKeyboardState(NULL);
+
 				if (e.key.keysym.sym == SDLK_UP)
-					keyPressed(BIT_2);
+				{
+					keyPressed(BIT_2); break;
+				}
 				else if (e.key.keysym.sym == SDLK_DOWN)
-					keyPressed(BIT_3);
+				{
+					keyPressed(BIT_3); break;
+				}
 				else if (e.key.keysym.sym == SDLK_LEFT)
-					keyPressed(BIT_1);
+				{
+					keyPressed(BIT_1); break;
+				}
 				else if (e.key.keysym.sym == SDLK_RIGHT)
-					keyPressed(BIT_0);
+				{
+					keyPressed(BIT_0); break;
+				}
 				else if (e.key.keysym.sym == SDLK_SPACE) //A
-					keyPressed(BIT_0);
+				{ 
+					keyPressed(BIT_0); break;
+				}
 				else if (e.key.keysym.sym == SDLK_LCTRL) //B
-					keyPressed(BIT_1);
+				{
+					keyPressed(BIT_1); break;
+				}
 				else if (e.key.keysym.sym == SDLK_RETURN) //Enter
-					keyPressed(BIT_2);
+				{
+					keyPressed(BIT_2); break;
+				}
 				else if (e.key.keysym.sym == SDLK_RSHIFT) //Select
-					keyPressed(BIT_3);
+				{
+					keyPressed(BIT_3); break;
+				}
 				else
 					break; //not one of the buttons -> do nothing
 			}
 
 			case SDL_KEYUP:
 			{
-				//const uint8_t * buttonReleased = SDL_GetKeyboardState(NULL);
 				if (e.key.keysym.sym == SDLK_UP)
-					keyReleased(BIT_2);
+				{
+					keyReleased(BIT_2); break;
+				}
 				else if (e.key.keysym.sym == SDLK_DOWN)
-					keyReleased(BIT_3);
+				{
+					keyReleased(BIT_3); break;
+				}
 				else if (e.key.keysym.sym == SDLK_LEFT)
-					keyReleased(BIT_1);
+				{
+					keyReleased(BIT_1); break;
+				}
 				else if (e.key.keysym.sym == SDLK_RIGHT)
-					keyReleased(BIT_0);
+				{
+					keyReleased(BIT_0); break;
+				}
 				else if (e.key.keysym.sym == SDLK_SPACE) //A
-					keyReleased(BIT_0);
+				{
+					keyReleased(BIT_0); break;
+				}
 				else if (e.key.keysym.sym == SDLK_LCTRL) //B
-					keyReleased(BIT_1);
+				{
+					keyReleased(BIT_1); break;
+				}
 				else if (e.key.keysym.sym == SDLK_RETURN) //Enter
-					keyReleased(BIT_2);
+				{
+					keyReleased(BIT_2); break;
+				}
 				else if (e.key.keysym.sym == SDLK_RSHIFT) //Select
-					keyReleased(BIT_3);
+				{
+					keyReleased(BIT_3); break;
+				}
 				else
 					break; //not one of the buttons -> do nothing
 			}

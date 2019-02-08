@@ -1,6 +1,7 @@
 #pragma once
 #include <stdio.h>
 #include <SDL.h>
+#include <stdlib.h>
 #include "types.h"
 
 #define TIMA 0xFF05 //actual timer which counts up @ a certain frequency
@@ -19,36 +20,45 @@ public:
 
 	void executeNextOpcode();
 	void updateTimers(int cyc);
-	void updateGraphics(int cyc);
-	void renderScreen();
-
+	
 private:
 	bool quit;
-	int CLOCK = 4194304;
-	int frameRate = 60;
-	int frequency = 4096;
-	const int MAXCYCLES = CLOCK / frameRate;
-
-	/*the cpu clock speed runs at 4194304Hz so if we know the current timer frequency 
-	we can work out how many clock cycles need to of passed until we increment our timer register
-	So if the current frequency is 4096Hz then our timer counter will be 1024 (CLOCKSPEED/4096). 
-	Means that "for every 1024 clock cycles our cpu does, our timer should increment itself once"*/
-	int timerCounter = CLOCK / frequency;
-	int dividerCounter = 0;
-
-
-	int scanlineCounter = 456; 
-	int bgData [144 * 160]; //first part is the screen y axis. The second is the x axis and the third is the colour (three elements for red, green and blue), last = alpha
-	Byte windowData [144 * 160]; //first part is the screen y axis. The second is the x axis and the third is the colour (three elements for red, green and blue), last = alpha
-	Byte spriteData [144][160][4]; //first part is the screen y axis. The second is the x axis and the third is the colour (three elements for red, green and blue), last = alpha
-	
+//====================================//	
+	//DRAWING
 	SDL_Rect rec;
 	SDL_Surface * bgSurf;
 	SDL_Surface * windowSurf;
 	SDL_Surface * spriteSurf;
 	SDL_Texture * texture;
 
+	SDL_Window * window;
+	SDL_Surface * screenSurface;
+	SDL_Event e;
 
+	void renderBackground();
+	void renderWindow();
+	void renderSprites();
+	int getColour(Byte palette, Byte top, Byte bottom, int bit, bool isSprite);
+	void initDisplay();
+	void destroySDL();
+	void renderSpriteTiles(Byte palette, int startX, int startY, Byte tileID, Byte flags);
+
+	void setLCDStatus();
+	bool isLCDEnabled() const;
+	void drawScanLine();
+	void doDMATransfer(Byte data);
+	void updateGraphics(int cyc);
+	void renderScreen();
+
+
+	int scanlineCounter = 456;
+	uint32_t bgData[144 * 160];
+	uint32_t garbage[144 * 166];
+	uint32_t windowData[144 * 160];
+	uint32_t spriteData[144 * 160];
+	uint32_t colorShades[4];
+//====================================//
+	//CPU
 	Byte memory[0x10000];
 	
 	Register reg_AF;
@@ -58,11 +68,8 @@ private:
 	Word reg_SP;
 	Word reg_PC;
 
-	bool m_MBC1;
-	bool m_MBC2;
-
-	int num_cycles;
-	
+//====================================//
+	//MEMORY MANAGEMENT
 	/*Need a variable declaration to specify which ROM bank is currently loaded into internal memory address 
 	0x4000 - 0x7FFF. As ROM Bank 0 is fixed into memory address 0x0 - 0x3FFF 
 	this variable should never be 0, it should be at least 1. We need to initialize this variable on emulator 
@@ -77,28 +84,42 @@ private:
 	Byte ramBank[0x8000];
 	Byte currentRamBank;
 	void createRamBanks(int numBanks);
-
 	bool enableRam;
 	bool romBanking; //variable is responsible for how to act when the game writes to memory address 0x4000-0x6000
-	bool interruptMasterEnable; 
-	bool halted;
-
-	void writeMemory(Word address, Byte data);
-	Byte readMemory(Word address) const;
-
 	void handleBanking(Word address, Byte data);
 	void doRamBankEnable(Word address, Byte data);
 	void changeRamBank(Byte data);
 	void changeLowRomBank(Byte data);
 	void changeHighRomBank(Byte data);
 	void changeRomRamMode(Byte data);
+	
+	
+	void writeMemory(Word address, Byte data);
+	Byte readMemory(Word address) const;
 
+	bool m_MBC1;
+	bool m_MBC2;
+
+//====================================//
+	//TIMING
 	void doDividerRegisters(int cyc);
 	void setClockFreq();
 	bool isClockEnabled();
 	Byte getClockFreq() const;
 
+	/*the cpu clock speed runs at 4194304Hz so if we know the current timer frequency
+	we can work out how many clock cycles need to of passed until we increment our timer register
+	So if the current frequency is 4096Hz then our timer counter will be 1024 (CLOCKSPEED/4096).
+	Means that "for every 1024 clock cycles our cpu does, our timer should increment itself once"*/
+	int CLOCK = 4194304;
+	int frameRate = 60;
+	int frequency = 4096;
+	const int MAXCYCLES = CLOCK / frameRate;
+	int timerCounter = CLOCK / frequency;
+	int dividerCounter = 0;
+	int num_cycles;
 
+//====================================//
 	/*There are two special registers to do with the state of interrupt handling in the gameboy.
 	The first is the Interrupt Enabled register (aka IE) located at memory addres 0xFFFF. This is
 	written to by the game to enable and disable specific interrupts. Interrupt would only get
@@ -124,27 +145,17 @@ private:
 	step 2 or 3 is false then the interrupt continues to wait until both 2 and 3 are true and the
 	game hasn't turned the interrupt request off by resetting its corresponding interrupt bit the
 	Interrupt Request Register(0xFF0F).*/
+
+	
+	//INTERRUPTS
 	void requestInterrupt(int id);
 	void handleInterrupts();
 	void serviceInterrupt(int interrupt);
+	bool interruptMasterEnable;
+	bool halted;
 
-	void setLCDStatus();
-	bool isLCDEnabled() const;
-	void drawScanLine();
-	void doDMATransfer(Byte data);
-	
-	void renderBackground();
-	void renderWindow();
-	void renderSprites();
-	int getColour(Byte palette, Byte top, Byte bottom, int bit, bool isSprite);
-	void initDisplay();
-	void destroySDL();
-
-	SDL_Window * window;
-	SDL_Renderer * renderer;
-	SDL_Surface * screenSurface;
-	SDL_Event e;
-
+//====================================//
+	//INPUT
 	Byte joypadButtons;
 	Byte joypadDirections;
 	void handleEvents();
@@ -152,7 +163,7 @@ private:
 	void keyReleased(int key);
 	Byte getJoypadState() const;
 
-
+//====================================//
 	//CPU INSTRS
 	void op(int pc, int cycle);
 	void set_flag(int flag, bool value);

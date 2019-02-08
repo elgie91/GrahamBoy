@@ -20,8 +20,9 @@ int main(int argc, char *args[])
 	//char game[] = "C:/Users/lemar/source/repos/Test/x64/Release/gb-test-roms-master/cpu_instrs/individual/02-interrupts.gb";  //"C:/Users/lemar/source/repos/GrahamBoy/Super Mario Land (World).gb";
 	//char game[] = "C:/Users/lemar/source/repos/Test/x64/Release/gb-test-roms-master/cpu_instrs/cpu_instrs.gb";  
 	//char game[] =  "C:/Users/lemar/source/repos/GrahamBoy/Super Mario Land (World).gb";
-	char game[] =  "C:/Users/lemar/source/repos/GrahamBoy/Tetris (World) (Rev A).gb";
-	//char game[] =  "C:/Users/lemar/source/repos/Test/x64/Release/kirby.gb";
+	//char game[] =  "C:/Users/lemar/source/repos/GrahamBoy/Tetris (World) (Rev A).gb";
+	//char game[] =  "C:/Users/lemar/source/repos/GrahamBoy/Legend of Zelda, The - Link's Awakening (Canada).gb";
+	char game[] = "C:/Users/lemar/source/repos/Test/x64/Release/kirby.gb";
 	gameBoy.loadRom(game);
 	
 	gameBoy.run();

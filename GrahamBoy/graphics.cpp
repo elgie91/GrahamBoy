@@ -57,7 +57,7 @@ void Emulator::updateGraphics(int cyc)
 
 void Emulator::renderScreen()
 {
-	//need to use surfaces b/c overlapping background/sprites/window together which apparently can't be done on textures
+	//Need tot lock the surfaces and update the pixels individually
 	SDL_LockSurface(bgSurf);
 	int * pixels = (int *)bgSurf->pixels;
 	for (int i = 0; i < 160; i++)
@@ -70,28 +70,39 @@ void Emulator::renderScreen()
 	}
 	SDL_UnlockSurface(bgSurf);
 
-	/*SDL_LockSurface(windowSurf);
-	windowSurf = SDL_CreateRGBSurfaceFrom((void*) windowData, 160, 144, 32, 160 * sizeof (int), 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-	SDL_UnlockSurface(windowSurf);*/
 
+	SDL_LockSurface(spriteSurf);
+	pixels = (int *)spriteSurf->pixels;
+	for (int i = 0; i < 160; i++)
+	{
+		for (int j = 0; j < 144; j++)
+		{
+			if (pixels[j* spriteSurf->w + i] != spriteData[i + j * width])
+				pixels[j* spriteSurf->w + i] = spriteData[i + j * width];
+		}
+	}
+	SDL_UnlockSurface(spriteSurf);
 
-	//SDL_SetColorKey(spriteSurf, SDL_TRUE, SDL_MapRGB(spriteSurf->format,255, 255, 255));
-	//SDL_Surface * windowSurf = SDL_CreateRGBSurfaceFrom(windowArray, 160, 144, 32, 160 * sizeof(int), 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-	//SDL_SetColorKey(windowSurf, SDL_TRUE, SDL_MapRGBA(windowSurf->format, 0xFF, 0xFF, 0xFF, 255));
+	SDL_LockSurface(windowSurf);
+	pixels = (int *)windowSurf->pixels;
+	for (int i = 0; i < 160; i++)
+	{
+		for (int j = 0; j < 144; j++)
+		{
+			if (pixels[j* windowSurf->w + i] != windowData[i + j * width])
+				pixels[j* windowSurf->w + i] = windowData[i + j * width];
+		}
+	}
+	SDL_UnlockSurface(windowSurf);
 
 
 	//Apply the image --> blit onto the screenSurface
 	SDL_BlitScaled(bgSurf, NULL, screenSurface, &rec);
-	//SDL_BlitScaled(spriteSurf, NULL, screenSurface, &rec);
-	//SDL_BlitScaled(windowSurf, NULL, screenSurface, &rec);
+	SDL_BlitScaled(spriteSurf, NULL, screenSurface, &rec);
+	SDL_BlitScaled(windowSurf, NULL, screenSurface, &rec);
 
 	//Update the surface
 	SDL_UpdateWindowSurface(window);
-
-	/*SDL_UpdateTexture(texture, NULL, bgData, width * sizeof(Uint32));
-	SDL_RenderClear(renderer);
-	SDL_RenderCopy(renderer, texture, NULL, NULL);
-	SDL_RenderPresent(renderer);*/
 	
 	return;
 }
@@ -107,34 +118,20 @@ void Emulator::initDisplay()
 	if (window == NULL)
 		exit(-1);
 
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
-	if (renderer == NULL)
-		exit(-1);
-	
-	//SDL_RenderSetScale(renderer, scale, scale); 
-	
-	//Attempt to set texture filtering to linear
-	if (!SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1"))
-		printf("Warning: Linear texture filtering not enabled!");
-
 	memset(bgData, 0xFFFFFFFF, width * height * sizeof(int)); //RGBA 255,255,255,255 ==> White
-	memset(windowData, 0x00000000, width * height * sizeof(int)); //RGBA 0 ==> Black
-	memset(spriteData, 0x00000000, width * height * sizeof(int)); //RGBA 0 ==> Black
+	memset(windowData, 0x00000000, width * height * sizeof(int)); //RGBA 0 ==> Black & Invisible (alpha = 0)
+	memset(spriteData, 0x00000000, width * height * sizeof(int)); //RGBA 0 ==> Black & Invisible (alpha = 0)
 
-	screenSurface = SDL_GetWindowSurface(window);
+	//need to use surfaces b/c overlapping background/sprites/window together which apparently can't be done on textures
 	bgSurf = SDL_CreateRGBSurfaceFrom((void*)bgData, 160, 144, 32, 160 * sizeof(int), 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
 	windowSurf = SDL_CreateRGBSurfaceFrom((void*)windowData, 160, 144, 32, 160 * sizeof(int), 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
-
-	rec.w = width * 5; rec.h = height * 5; rec.x = 0; rec.y = 0;
-	//SDL_BlitScaled(bgSurf, NULL, screenSurface, &rec);
+	spriteSurf = SDL_CreateRGBSurfaceFrom((void*)spriteData, 160, 144, 32, 160 * sizeof(int), 0xFF000000, 0x00FF0000, 0x0000FF00, 0x000000FF);
+	SDL_SetColorKey(spriteSurf, SDL_TRUE, SDL_MapRGB(spriteSurf->format, 255, 255, 255)); //sets the color key (transparent pixel) in a surface!
+	screenSurface = SDL_GetWindowSurface(window);
 	
-
-	//Update the surface
-	SDL_UpdateWindowSurface(window);
-
-	//texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width, height);
-
-
+	rec.w = width * 5; rec.h = height * 5; rec.x = 0; rec.y = 0;
+	colorShades[0] = WHITE; colorShades[1] = LIGHT_GREY; colorShades[2] = DARK_GREY; colorShades[3] = BLACK;
+	
 	return;
 }
 
@@ -310,14 +307,21 @@ void Emulator::drawScanLine()
 	
 	if (testBit(control, 5))
 		renderWindow();
-		
+
 	if (testBit(control, 1))
+	{
+		memset(spriteData, 0, width * height * sizeof(int));
 		renderSprites();
+	}
 	
-	//renderScreen(); //does the actual drawing
 	return;
 }
 
+/*The gameboy has two regions of memory for the background layout which is shared by the window.
+The memory regions are 0x9800-0x9BFF and 0x9C00-9FFF. We need to check bit 3 of the lcd contol
+register to see which region we are using for the background and bit 6 for the window.
+Each byte in the memory region is a tile identification number of what needs to be drawn. This
+identification number is used to lookup the tile data in video ram so we know how to draw it.*/
 void Emulator::renderBackground()
 {
 	Address tileLocation = 0, backgroundLocation = 0;
@@ -383,18 +387,7 @@ void Emulator::renderBackground()
 		//now have the colour id get the actual colour from palette 0xFF47
 		Byte palette = readMemory(0xFF47);
 		uint32_t colourID = getColour(palette, high, low, tile_x_pixel, false);
-		int red = 0, green = 0, blue = 0;
 		
-		
-		//setup RGB values
-		switch (colourID)
-		{
-		case WHITE: red = blue = green = 0xFF; break;
-		case LIGHT_GREY: red = green = blue = 0xCC; break;
-		case DARK_GREY: red = green = blue = 0x77; break;
-		default: break;
-		}
-
 		bgData[y * 160 + x] = colourID;
 
 	}
@@ -411,7 +404,7 @@ void Emulator::renderWindow()
 	//Get current window tile map
 	windowLocation = testBit(lcdControl, 6) ? 0x9C00 : 0x9800;
 
-	tileLocation = testBit(lcdControl, 4) ? 0x8000 : 0x8800;
+	tileLocation = testBit(lcdControl, 4) ? 0x8000 : 0x9000;
 
 	//check tile data
 	if (!testBit(lcdControl, 4))
@@ -419,8 +412,12 @@ void Emulator::renderWindow()
 
 	/*WindowY (0xFF4A): The Y Position of the VIEWING AREA to start drawing the window from
 	WindowX (0xFF4B): The X Positions -7 of the VIEWING AREA to start drawing the window from */
-	Byte windowY = readMemory(0xFF4A);
-	Byte windowX = readMemory(0xFF4B) - 7;
+	Byte windowY = (int) readMemory(0xFF4A);
+	Byte windowX = (int) readMemory(0xFF4B);
+
+	//fix for games that set the window to something other than 7
+	if (windowX < 7)
+		windowX = 7;
 
 	// For each pixel in the 160x1 scanline:
 	// 1. Calculate where the pixel resides in the overall 256x256 background map
@@ -436,7 +433,7 @@ void Emulator::renderWindow()
 		// 1. Calculate where the pixel resides in the overall 256x256 background map
 		// WINDOW IS RELATIVE TO THE SCREEN
 		// Shift X & Y pixels based on window register value
-		int display_x = x + (int) windowX;
+		int display_x = x +  windowX - 7;
 		int display_y = y;
 
 		//2. Get the tile ID where that pixel is located
@@ -458,7 +455,7 @@ void Emulator::renderWindow()
 		
 		if (currentScanline < windowY) //set x,y to black and transparent?
 		{
-			windowData[currentScanline*160 + x] = 0x00000000;
+			windowData[currentScanline * 160 + x] = 0x00000000;
 			
 		}
 
@@ -476,29 +473,14 @@ void Emulator::renderWindow()
 			//now have the colour id get the actual colour from palette 0xFF47
 			Byte palette = readMemory(0xFF47);
 			uint32_t colourID = getColour(palette, low, high, tile_x_pixel, false);
-			int red = 0, green = 0, blue = 0, alpha = 0xFF;
-
-
-			//setup RGB values
-			switch (colourID)
-			{
-			case WHITE: red = blue = green = 0xFF; break;
-			case LIGHT_GREY: red = green = blue = 0xCC; break;
-			case DARK_GREY: red = green = blue = 0x77; break;
-			default: break;
-			}
-
+			
 			windowData[display_x + display_y*160] = colourID;
+			if (display_x == 0 && display_y == 0x80)
+				printf("Rara");
 		}
 
 	}
 }
-
-/*The gameboy has two regions of memory for the background layout which is shared by the window. 
-The memory regions are 0x9800-0x9BFF and 0x9C00-9FFF. We need to check bit 3 of the lcd contol 
-register to see which region we are using for the background and bit 6 for the window. 
-Each byte in the memory region is a tile identification number of what needs to be drawn. This 
-identification number is used to lookup the tile data in video ram so we know how to draw it.*/
 
 /*The sprite data is located in memory address 0x8000-0x8FFF which means the sprite identifiers 
 are all unsigned values which makes finding them easier. There are 40 tiles located in memory 
@@ -511,7 +493,7 @@ attributes associtated to it, these are:
 1: Sprite X Position: Position of the sprite on the X axis of the viewing display minus 8
 2: Pattern number: This is the sprite identifier used for looking up the sprite data in 
 	memory region 0x8000-0x8FFF
-3: Attributes: These are the attributes of the sprite, discussed later.
+3: Attributes: These are the attributes of the sprite.
 
 A sprite can either be 8x8 pixels or 8x16 pixels, this can be determined by the sprites 
 attributes. This is a break down of the sprites attributes:
@@ -521,116 +503,99 @@ Bit6: Y flip
 Bit5: X flip
 Bit4: Palette number
 Bit3: Not used in standard gameboy
-Bit2-0: Not used in standard gameboy */
+Bit2-0: Not used in standard gameboy 
+*/
 void Emulator::renderSprites()
 {
-	return;
-	Byte lcdControl = readMemory(0xFF40);
-	bool use8x16 = false;
-	
-	if (testBit(lcdControl, 2)) //bit 2 of 0xFF40 controls the sprite size
-		use8x16 = true;
+	Address 
+		spriteDataLocation = 0xFE00,
+		offset;
+	Byte palette0 = memory[0xFF48];
+	Byte palette1 = memory[0xFF49];
 
-	for (int sprite = 0; sprite < 40; sprite++)
+	bool use8x16 = testBit(memory[0xFF40],2) ? true : false;
+
+	//40 potential sprites to render maximum so start at 39 to have right priority [39->0 = 40]
+	for (int spriteID = 39; spriteID >= 0; spriteID--)
 	{
-		//sprite occupies 4 bytes in the sprite attribute table
-		Byte index = sprite * 4;
-		Byte yPos = readMemory(0xFE00 + index) - 16;
-		Byte xPos = readMemory(0xFE00 + index + 1) - 8;
-		Byte tileLocation = readMemory(0xFE00 + index + 2);
-		Byte attributes = readMemory(0xFE00 + index + 3);
+		offset = spriteDataLocation + (spriteID * 4); //160 bytes of sprite / 40 = 4 bytes per sprite
+		int yPos = ((int)readMemory(offset)) - 16;
+		int xPos = ((int)readMemory(offset + 1)) - 8; 
 
-		bool yFlip = testBit(attributes, 6);
-		bool xFlip = testBit(attributes, 5);
+		Byte tileNumber = readMemory(offset + 2);
+		Byte attributes = readMemory(offset + 3);
 
-		int scanline = readMemory(0xFF44);
+		Byte spritePalette = (testBit(attributes, 4)) ? palette1 : palette0; //1 = palette 1 & so forth
 
-		int ySize;
-		ySize = (use8x16) ? 16 : 8;
-
-		/*check if sprite intercepts w/ the scanline
-		y-------------
-		|				<-- yPos
-		|				
-		|===============] <-- scanline
-		|				<--yPos + ySize
-		y------------- */
-		/*if ( scanline >= yPos && (scanline < (yPos + ySize)) )
+		// If in 8x16 mode, the tile pattern for top is tileNumber & 0xFE
+		// Lower 8x8 tile is tileNumber | 0x1
+		if (use8x16)
 		{
-			int line = scanline - yPos; //determine how far into the sprite are we drawing
+			tileNumber = tileNumber & 0xFE;
+			Byte lowerTileNumber = tileNumber | 0x01;
+			renderSpriteTiles(spritePalette, xPos, yPos, tileNumber, attributes);
+			renderSpriteTiles(spritePalette, xPos, yPos + 8, lowerTileNumber, attributes);
+		}
 
-			
-			if (yFlip) //read the sprite in backwards in the y axis if there's a flip
+		else
+			renderSpriteTiles(spritePalette, xPos, yPos, tileNumber, attributes);
+	}	
+}
+
+void Emulator::renderSpriteTiles(Byte palette, int startX, int startY, Byte tileID, Byte flags)
+{
+	Address spriteDataLocation = 0x8000;
+
+	bool mirror_y = testBit(flags, BIT_6);
+	bool mirror_x = testBit(flags, BIT_5);
+
+	/* If priority set to zero then sprite always rendered above bg
+	If priority set to 1, sprite is hidden behind the background and window
+	unless the color of the background or window is white, it's then rendered on top */
+	bool priority = testBit(flags, BIT_7);
+
+	for (int y = 0; y < 8; y++)
+	{
+		int offset = (tileID * 16) + spriteDataLocation;
+
+		Byte
+			high = readMemory(offset + (y * 2) + 1),
+			low = readMemory(offset + (y * 2));
+
+		for (int x = 0; x < 8; x++)
+		{
+			int pixel_x = (mirror_x) ? (startX + x) : (startX + 7 - x);
+			int pixel_y = (mirror_y) ? (startY + 7 - y) : (startY + y);
+
+			if (pixel_x < 0 || pixel_x >= width)
+				continue;
+			if (pixel_y < 0 || pixel_y >= height)
+				continue;
+
+			uint32_t color = getColour(palette, low, high, x, true);
+
+			uint32_t bg_color = bgData[pixel_x + 160 * pixel_y]; //get the background colour
+
+			if (priority) //if priority, then the bg takes precedence over the sprite
 			{
-				line -= ySize;
-				line *= -1; //?
+				if (bg_color != WHITE) //but only if the background is white
+					continue;
 			}
 
-			line *= 2; //represented as two bytes in memory
-			Word dataAddress = 0x8000 + (tileLocation * 16) + line;
-			Byte data1 = readMemory(dataAddress);
-			Byte data2 = readMemory(dataAddress + 1);
-
-			//pixel 0 in the tile is bit 7 of data1 & data2 pixel 1 is bit 6 etc....
-			for (int tilePixel = 7; tilePixel >= 0; tilePixel--) //easier to read from right left
-			{
-				int colourBit = tilePixel;
-				if (xFlip)
-				{
-					colourBit -= 7;
-					colourBit *= -1;
-				}
-
-
-
-				//combine data2 & data1 to get the colour id for this pixel in the tile
-				int colourNum = getBitVal(data2, colourBit);
-				colourNum <<= 1;
-				colourNum |= getBitVal(data1, colourBit);
-
-				Word colourAddress = testBit(attributes, 4) ? 0xFF49 : 0xFF48;
-				Byte col = getColour(colourNum, colourAddress);
-
-				if (col == WHITE) //white is transparent for sprites
-					continue;
-				
-				int red = 0, green = 0, blue = 0;
-
-				//setup RGB values
-				switch (col)
-				{
-				case WHITE: red = green = blue = 0xFF; break;
-				case LIGHT_GREY: red = green = blue = 0xCC; break;
-				case DARK_GREY: red = green = blue = 0x77; break;
-				default: red = green = blue = 0; break;
-				}
-
-				//reverse the pixel so it is correct orientation
-				int xPix = 0 - tilePixel;
-				xPix += 7;
-
-				int pixel = xPos + xPix;
-
-				//safety check
-				if (scanline < 0 || scanline > 143 || pixel < 0 || pixel > 159)
-					continue;
-
-				screenData[scanline][pixel][0] = red;
-				screenData[scanline][pixel][1] = green;
-				screenData[scanline][pixel][2] = blue;
-			}
-		}*/
+			spriteData[pixel_x + 160 * pixel_y] = color; //otherwise render the sprite over the background
+		}
 	}
+
 }
 
 int Emulator::getColour(Byte palette, Byte top, Byte bottom, int bit, bool isSprite)
 {
 	
 	// Figure out what colors to apply to each color code based on the palette data
-	Byte colorShade3 = palette & 0x03; //extract bits 7 & 6
-	Byte colorShade2 = (palette & 0x0C) >> 2; //extract bits 5 & 4
-	Byte colorShade1 = (palette & 0x30) >> 4; //extract bits 3 & 2
-	Byte colorShade0 = (palette & 0xC0) >> 6; //extract bits 1 & 0
+	Byte colorShade3 = palette >> 6; //extract bits 7 & 6
+	Byte colorShade2 = (palette & 0x30) >> 4; //extract bits 5 & 4
+	Byte colorShade1 = (palette & 0x0C) >> 2; //extract bits 3 & 2
+	Byte colorShade0 = palette & 0x03;  //extract bits 1 & 0
 	
 	// Get color code from the two defining bytes
 	Byte first = (Byte)testBit(top, bit);
@@ -639,11 +604,11 @@ int Emulator::getColour(Byte palette, Byte top, Byte bottom, int bit, bool isSpr
 	
 	switch (colorCode)
 	{
-		case 0: return (isSprite)? 0xFFFFFFFF : WHITE; break;
-		case 1: return LIGHT_GREY; break;
-		case 2: return DARK_GREY; break;
-		case 3: return BLACK; break;
-		default: return 0xFFFFFF; break;
+		case 0: return (isSprite)? 0xFFFFFFFF : colorShades[colorShade0]; 
+		case 1: return colorShades[colorShade1];
+		case 2: return colorShades[colorShade2];
+		case 3: return colorShades[colorShade3];
+		default: return 0xFFFFFFFF; 
 	}
 
 }
@@ -651,7 +616,7 @@ int Emulator::getColour(Byte palette, Byte top, Byte bottom, int bit, bool isSpr
 void Emulator::destroySDL()
 {
 	SDL_FreeSurface(bgSurf);
-	//SDL_FreeSurface(spriteSurf);
+	SDL_FreeSurface(spriteSurf);
 	SDL_FreeSurface(windowSurf);
 	SDL_FreeSurface(screenSurface);
 }

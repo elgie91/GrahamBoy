@@ -36,6 +36,7 @@ Byte lowNibble(Byte value)
 {
 	return (value & 0xF);
 }
+
 Byte highNibble(Byte value)
 {
 	return ( (value>>4) & 0xF);

@@ -21,22 +21,21 @@ void Emulator::writeMemory(Word address, Byte data)
 	{
 		if (enableRam)
 		{
-
 			if (m_MBC1)
 			{
 				Word newAddress = address - 0xA000;
-				ramBank[newAddress + (currentRomBank * 0x2000)] = data;
+				ramBank[newAddress + (currentRamBank * 0x2000)] = data;
 			}
 		}
 
 		else if (m_MBC2 && address < 0xA200)
 		{
 			Word newAddress = address - 0xA000;
-			ramBank[newAddress + (currentRomBank * 0x2000)] = data;
+			ramBank[newAddress + (currentRamBank * 0x2000)] = data;
 		}
 	}
 
-	// we're writing to internal RAM, so this is the cho
+	// we're writing to internal RAM, so this is the echo
 	else if (address >= 0xC000 && address <= 0xDFFF)
 		memory[address] = data;
 
@@ -230,8 +229,12 @@ void Emulator::changeLowRomBank(Byte data)
 void Emulator::changeHighRomBank(Byte data)
 {
 	currentRamBank = 0;
-	Byte bankID = data & 0xE0; //keep the top 3 bits of the bank #
-	currentRomBank = (currentRomBank & 0x1F) | bankID; //keep the bottom 5 bits of current bank & combine top 3 digits of bank id
+
+
+	//Byte bankID = data & 0xE0; //keep the top 3 bits of the bank #
+	Byte bankID = data & 0x03; //keep the bottom 2 bits of the bank #
+	//currentRomBank = (currentRomBank & 0x1F) | bankID; //keep the bottom 5 bits of current bank & combine top 3 digits of bank id
+	currentRomBank = (currentRomBank & 0x1F) | (bankID << 5); //keep the bottom 5 bits of current bank & combine top 3 digits of bank id
 
 	switch (currentRomBank) //prevents these banks from being accessed --> pandocs
 	{
@@ -250,7 +253,7 @@ use rambank 0 in this mode*/
 void Emulator::changeRomRamMode(Byte data)
 {
 	Byte newData = data & 0x1;
-	romBanking = (newData == 0) ? true : false;
+	romBanking = testBit(newData, 0);
 	
 	if (romBanking)
 		currentRamBank = 0;
