@@ -456,6 +456,7 @@ void Emulator::parseOpcode(Byte code)
 	Byte value = readMemory(reg_PC + 1);
 	Byte value2 = readMemory(reg_PC + 2);
 
+		//Uncomment for disassembler
         /*printf("A:%02X F:%c%c%c%c BC:%04X DE:%04x HL:%04x SP:%04x PC:%04x ",
                reg_AF.hi, reg_AF.lo & FLAG_ZERO ? 'Z' : '-',
                reg_AF.lo & FLAG_SUB ? 'N' : '-',

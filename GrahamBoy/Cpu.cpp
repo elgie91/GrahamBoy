@@ -14,9 +14,6 @@ void Emulator::op(int pc, int cycle)
 
 }
 
-//process the cb prefix instructions
-//void parse_bit_op(Opcode code)
-
 void Emulator::set_flag(int flag, bool value)
 {
 	if (value)
@@ -48,13 +45,7 @@ void Emulator::LD(Register & pair, Byte upper, Byte lower)
 	pair.reg = (Word) (upper << 8 | lower);
 }
 
-
-/*void Emulator::LD(Word& reg_pair, Byte upper, Byte lower)
-{
-	reg_pair = combine(upper, lower);
-}*/
-
-//ld hl, sp+n ????????????????
+//ld hl, sp+n 
 void Emulator::LDHL(Byte value)
 {
 	//value is a signed value
@@ -111,7 +102,6 @@ void Emulator::ADD(Byte& target, Byte value)
 	set_flag(FLAG_CARRY, result > 0xFF);
 
 	target = (Byte)(result & 0xFF);
-	//LD(target, (Byte)(result & 0xFF));
 }
 
 //add from an address [HL?]
@@ -132,9 +122,6 @@ void Emulator::ADC(Byte& target, Byte value)
 	set_flag(FLAG_CARRY, result > 0xFF);
 
 	target = (Byte)(result & 0xFF);
-	//LD(target, (Byte)(result & 0xFF));
-
-
 }
 
 //add from an address [HL?]
@@ -156,7 +143,6 @@ void Emulator::SUB(Byte& target, Byte value)
 	set_flag(FLAG_CARRY, (sTarget & 0xFF) < (sValue & 0xFF));
 
 	target = (Byte)(result & 0xFF);
-	//LD(target, (Byte)(result & 0xFF));
 }
 
 void Emulator::SUB(Byte& target, Address addr)
@@ -178,7 +164,6 @@ void Emulator::SBC(Byte& target, Byte value)
 	set_flag(FLAG_CARRY, (target & 0xFF) < (value + carry)); //subtracting value is greater than the target
 
 	target = (Byte)(result & 0xFF);
-	//LD(target, (Byte)(result & 0xFF));
 }
 
 void Emulator::SBC(Byte& target, Address addr)
@@ -195,22 +180,6 @@ void Emulator::AND(Byte& target, Byte value)
 	set_flag(FLAG_SUB, false);
 	set_flag(FLAG_CARRY, false);
 	set_flag(FLAG_HALF_CARRY, true);
-
-	/*int x;
-	printf("Inside and\n");
-	cin >> x;
-	printf("opcode: %x,"
-		"reg_A: %02x, "
-		"reg_B: %02x, "
-		"reg_C: %02x, "
-		"reg_D: %02x, "
-		"reg_E: %02x, "
-		"reg_F: %02x, "
-		"reg_H: %02x, "
-		"reg_L: %02x, "
-		"reg_PC: %04x, "
-		"reg_SP: %04x, \n",
-		reg_PC, reg_A, reg_B, reg_C, reg_D, reg_E, reg_F, reg_H, reg_L, reg_PC, reg_SP);*/
 
 }
 
@@ -339,7 +308,7 @@ void Emulator::ADDSP(Byte value)
 	Word_Signed sVal = (Word_Signed)(Byte_Signed)value; //need to convert from unsigned byte to signed byte to signed word in order to place in SP
 	Word result = Word((Word_Signed)reg_SP + sVal); //need to convert back to Unsigned word b/c using SP
 
-	//??
+
 	set_flag(FLAG_HALF_CARRY, (result & 0xF) < (reg_SP & 0xF)); //! --> if there was a carry, then result would have a 0 at bit3 [0-3 indice] making it appear to be smaller b/c of the carry
 	set_flag(FLAG_CARRY, (result & 0xFF) < (reg_SP & 0xFF)); //! --> if there was a carry, then result would have a 0 at bit 15 [12-15 indice] making it appear to be smaller b/c of the carry
 	set_flag(FLAG_ZERO, false); //reset
@@ -372,10 +341,6 @@ void Emulator::DECSP()
 	reg_SP--;
 }
 
-// Rotate shift instructions
-
-// Shift Left
-//????
 void Emulator::SL(Byte& target)
 {
 	Byte result = (target << 1);
@@ -423,7 +388,6 @@ void Emulator::SR(Address addr, bool include_top_bit)
 }
 
 // Shifts through carry
-//??????
 void Emulator::RL(Byte& target, bool carry, bool zero_flag)
 {
 	int bit7 = ((target & 0x80) != 0);
@@ -445,7 +409,6 @@ void Emulator::RL(Address addr, bool carry)
 	writeMemory(addr, value);
 }
 
-//????
 void Emulator::RR(Byte& target, bool carry, bool zero_flag)
 {
 	int bit1 = ((target & 0x1) != 0);
@@ -469,7 +432,6 @@ void Emulator::RR(Address addr, bool carry)
 	return;
 }
 
-//?????
 void Emulator::SRA(Byte& target)
 {
 	// content of bit 7 is unchanged
@@ -590,28 +552,28 @@ void Emulator::JP(Register target)
 
 void Emulator::JPNZ(Register target)
 {
-	bool set = (reg_AF.lo >> 7) & 1 ? true : false; //is_bit_set(reg_F, BIT_7);
+	bool set = (reg_AF.lo >> 7) & 1 ? true : false;
 	if (!set) //jump if 'zero' flag = 0
 		JP(target);
 }
 
 void Emulator::JPZ(Register target)
 {
-	bool set = (reg_AF.lo >> 7) & 1 ? true : false; //is_bit_set(reg_F, BIT_7);
+	bool set = (reg_AF.lo >> 7) & 1 ? true : false; 
 	if (set) //jump if 'zero' flag = 1
 		JP(target);
 }
 
 void Emulator::JPNC(Register target)
 {
-	bool set = (reg_AF.lo >> 4) & 1 ? true : false; //is_bit_set(reg_F, BIT_4);
+	bool set = (reg_AF.lo >> 4) & 1 ? true : false; 
 	if (!set) //jump if carry flag = 0
 		JP(target);
 }
 
 void Emulator::JPC(Register target)
 {
-	bool set = (reg_AF.lo >> 4) & 1 ? true : false; //is_bit_set(reg_F, BIT_4);
+	bool set = (reg_AF.lo >> 4) & 1 ? true : false; 
 	if (set) //jump if carry flag = 1
 		JP(target);
 }
@@ -625,7 +587,7 @@ void Emulator::JR(Byte value)
 
 void Emulator::JRNZ(Byte value)
 {
-	bool set = (reg_AF.lo >> 7) & 1 ? true : false; //is_bit_set(reg_F, BIT_7);
+	bool set = (reg_AF.lo >> 7) & 1 ? true : false; 
 	if (!set) //jump if 'zero' flag = 0
 		JR(value);
 }
@@ -633,14 +595,14 @@ void Emulator::JRNZ(Byte value)
 
 void Emulator::JRZ(Byte value)
 {
-	bool set = (reg_AF.lo >> 7) & 1 ? true : false; //is_bit_set(reg_F, BIT_7);
+	bool set = (reg_AF.lo >> 7) & 1 ? true : false; 
 	if (set) //jump if 'zero' flag = 1
 		JR(value);
 }
 
 void Emulator::JRNC(Byte value)
 {
-	bool set = (reg_AF.lo >> 4) & 1 ? true : false; //is_bit_set(reg_F, BIT_4);
+	bool set = (reg_AF.lo >> 4) & 1 ? true : false; 
 	if (!set) //jump if carry flag = 0
 		JR(value);
 }
@@ -648,14 +610,14 @@ void Emulator::JRNC(Byte value)
 
 void Emulator::JRC(Byte value)
 {
-	bool set = (reg_AF.lo >> 4) & 1 ? true : false; //is_bit_set(reg_F, BIT_4);
+	bool set = (reg_AF.lo >> 4) & 1 ? true : false; 
 	if (set) //jump if carry flag = 1
 		JR(value);
 }
 
 void Emulator::JPHL()
 {
-	reg_PC = reg_HL.reg; // Pair(reg_H, reg_L).address();
+	reg_PC = reg_HL.reg; 
 }
 
 // Function Instructions
@@ -709,15 +671,13 @@ void Emulator::RET()
 	Byte lAddr = readMemory(reg_SP++);
 	Byte hAddr = readMemory(reg_SP++);
 
-	reg_PC = (Word)(hAddr << 8) | lAddr; //Pair(hAddr, lAddr).address();
+	reg_PC = (Word)(hAddr << 8) | lAddr;
 
 	op(0, 3); //shouldn't it be 2?
 }
 
-///????
 void Emulator::RETI()
 {
-	//?
 	interruptMasterEnable = true; //restore interrupts
 	RET();
 }

@@ -216,6 +216,7 @@ void Emulator::updateTimers(int cyc)
 	return;
 } //in simple words based on the timerCounter (CLOCK/freq), we either update the time +1 or if timer is about to overflow, reset
 
+
 /*The way the Divider Register works is it continually counts up from 0 to 255 and then when it overflows it 
 starts from 0 again. It does not cause an interupt when it overflows and it cannot be paused 
 like the timers. It counts up at a frequency of 16382 which means every 256 CPU clock cycles 
@@ -433,50 +434,10 @@ void Emulator::handleEvents()
 	}
 }
 
-/* The gameboy has an inbuilt joypad with 8 buttons. There are 4 directional buttons 
-(up, down, left and right) and standard buttons (start,select, A and B). The joypad 
-register can be found at address 0xFF00 and it is broken down like so:
-
-Bit 7 - Not used
-Bit 6 - Not used
-Bit 5 - P15 Select Button Keys (0=Select)
-Bit 4 - P14 Select Direction Keys (0=Select)
-Bit 3 - P13 Input Down or Start (0=Pressed) (Read Only)
-Bit 2 - P12 Input Up or Select (0=Pressed) (Read Only)
-Bit 1 - P11 Input Left or Button B (0=Pressed) (Read Only)
-Bit 0 - P10 Input Right or Button A (0=Pressed) (Read Only)
-Bits 0-3 are set by the emulator to show the state of the joypad. 
-
-As you can see the directional buttons and the standard buttons share this range of bits 
-so how would the game know if bit 3 was set whether it was the directional down button or 
-the stanadrd start button? The way this works is that the game sets bit 4 and 5 depending 
-on whether it wants to check on the directional buttons or the standard buttons.
-
-The way I believe this works in the original gameboy hardware is the game writes to memory 
-0xFF00 with bit 4 or 5 set (never both). It then reads from memory 0xFF00 and instead of 
-reading back what it just wrote, what is returned is the state of the joypad based on 
-whether bit 4 or bit 5 was set. For example if the game wanted to check which directional 
-buttons was pressed it would set bit 4 to 1 and then it would do a read memory on 0xFF00. 
-If the up key is pressed then when reading 0xFF00 bit 2 would be set to 0 to signal that 
-the directional button up is pressed (0 means pressed, 1 unpressed). However if up was not 
-pressed but the select button was then bit 2 would be left at 1 meaning nothing is pressed, 
-even though the select button is pressed which maps on to bit 2. The reason why bit 2 would 
-be set to 1 signalling it is not pressed even when it is is because bit 4 was set to 1 
-meaning the game is only interested in the state of the directional buttons.
-
-The way I emulate this is I have a BYTE variabled called m_JoypadState where each bit 
-represents the state of the joypad (8 buttons and 8 bits so it works fine). Whenever a button 
-is pressed I set the correct bit in m_JoypadState to 0 and if it is not pressed it is set to 1. 
-If a bit in m_JoypadState goes from 1 to 0 then it means this button has just been pressed so a 
-joypad interupt is requested.*/
 
 void Emulator::keyPressed(int key)
 {
-	/*int key_id = get_key_id();
-
-	if (key_id < 0)
-		return;*/
-
+	
 	bool directional = false;
 
 	if (e.key.keysym.sym == SDLK_UP || e.key.keysym.sym == SDLK_DOWN || e.key.keysym.sym == SDLK_LEFT || e.key.keysym.sym == SDLK_RIGHT)
@@ -497,42 +458,11 @@ void Emulator::keyPressed(int key)
 
 	requestInterrupt(INTERRUPT_JOYPAD);
 	
-	/*//check if the button was not already pressed
-	bool previouslyUnpressed = ( !testBit(joypad, key) ) ? false : true; //if it was pressed testBit = 0 & previouslyUnpressed should be false
-
-	//set the key to pressed --> pressed = 0
-	bitClear(joypad, key);
-
-	//check if either a directional or regular button pushed
-	bool directional = false;
-
-	if (key < 4)
-		directional = true;
-
-	Byte keyCheck = memory[0xFF00]; 
-	bool reqInterrupt = false;
-
-	//check whether we want to look at the buttons or the directional
-	if (!directional && !testBit(keyCheck, key)) //looking to see if it is a button & pressed (testBit = 0)
-		reqInterrupt = true;
-	
-	else if (directional && !testBit(keyCheck, key)) //looking to see if it is a directional & pressed (testBit = 0)
-		reqInterrupt = true;
-
-	if (reqInterrupt && previouslyUnpressed) //button was previously unpressed (going from 1 -> 0)
-		requestInterrupt(INTERRUPT_JOYPAD);*/
-
 	return;
 }
 
 void Emulator::keyReleased(int key)
 {
-
-	/*int key_id = get_key_id();
-
-	if (key_id < 0)
-		return;*/
-
 	bool directional = false;
 
 	if (e.key.keysym.sym == SDLK_UP || e.key.keysym.sym == SDLK_DOWN || e.key.keysym.sym == SDLK_LEFT || e.key.keysym.sym == SDLK_RIGHT)
@@ -551,31 +481,11 @@ void Emulator::keyReleased(int key)
 	else
 		joypadButtons = bitSet(joy, key);
 	
-	/*joypad = bitSet(joypad, key); //button pushed so set it to 1
-	return;*/
 }
 
-//?
+//depending on bits four & five of 0xFF00, we will return either the buttons or the d-pad
 Byte Emulator::getJoypadState() const
 {
-	/*Byte res = memory[0xFF00];
-	// flip all the bits
-	res ^= 0xFF;
-
-	// are we interested in the standard buttons?
-	if (!testBit(res, 4))
-	{
-		Byte topJoypad = joypad >> 4;
-		topJoypad |= 0xF0; // turn the top 4 bits on
-		res &= joypad; // show what buttons are pressed
-	}
-	else if (!testBit(res, 5))//directional buttons
-	{
-		Byte bottomJoypad = joypad & 0xF;
-		bottomJoypad |= 0xF0;
-		res &= bottomJoypad;
-	}*/
-
 	Byte request = memory[0xFF00];
 
 	switch (request) //Only bit 4 & 5 are relevent 
