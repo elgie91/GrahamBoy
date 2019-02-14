@@ -475,8 +475,6 @@ void Emulator::renderWindow()
 			uint32_t colourID = getColour(palette, low, high, tile_x_pixel, false);
 			
 			windowData[display_x + display_y*160] = colourID;
-			if (display_x == 0 && display_y == 0x80)
-				printf("Rara");
 		}
 
 	}
