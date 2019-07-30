@@ -12,8 +12,8 @@ A GameBoy (not Color) Emulator written in C++
 Motivation for undergoing this project was to improve my C++ skills, learn more about emulators, and build one of my favorite systems.
 
 ### Built with
-* [SDL] (https://www.libsdl.org/download-2.0.php) - Graphics Framework
-* [Visual Studio] (https://visualstudio.microsoft.com/) - IDE
+* [SDL](https://www.libsdl.org/download-2.0.php) - Graphics Framework
+* [Visual Studio](https://visualstudio.microsoft.com/) - IDE
 
 ### TODO
 * Include Save states
@@ -21,10 +21,10 @@ Motivation for undergoing this project was to improve my C++ skills, learn more 
 * Allow for changing games without re-compiling (As of now, games are hard coded in the source)
 
 ## Gameplay
-![CPU TESTS PASSED] (https://raw.githubusercontent.com/elgie91/GrahamBoy/master/Gameboy%20Emulator%202019-07-30%203_36_07%20PM.png)
-![TETRIS] (tetris.gif?raw=true "Tetris")
-![DREAMLAND] (dreamland.gif?raw=true "Kirby Dreamland")
-![Mario] (mario.gif?raw=true "Super Mario Land 1")
+![CPU TESTS PASSED](https://raw.githubusercontent.com/elgie91/GrahamBoy/master/Gameboy%20Emulator%202019-07-30%203_36_07%20PM.png)
+![TETRIS](tetris.gif?raw=true "Tetris")
+![DREAMLAND](dreamland.gif?raw=true "Kirby Dreamland")
+![Mario](mario.gif?raw=true "Super Mario Land 1")
 
 ## Controls
 | Keyboard Key | Function |
