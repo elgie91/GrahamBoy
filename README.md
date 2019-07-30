@@ -5,7 +5,6 @@ A GameBoy (not Color) Emulator written in C++
 * Accurate CPU and Memory emulation
 * 4-bit Grayscale Palette
 * Plays most .gb games
-* Game save states (up to 12 for each game)
 * Ability to overclock CPU x100
 * 60fps Display
 
@@ -16,7 +15,16 @@ Motivation for undergoing this project was to improve my C++ skills, learn more 
 * [SDL] (https://www.libsdl.org/download-2.0.php) - Graphics Framework
 * [Visual Studio] (https://visualstudio.microsoft.com/) - IDE
 
+### TODO
+* Include Save states
+* Include Audio
+* Allow for changing games without re-compiling (As of now, games are hard coded in the source)
+
 ## Gameplay
+! [CPU TESTS PASSED] (https://github.com/elgie91/GrahamBoy/blob/master/Gameboy%20Emulator%202019-07-30%203_36_07%20PM.png)
+! [TETRIS] (https://github.com/elgie91/GrahamBoy/blob/master/tetris.gif)
+! [DREAMLAND] (https://github.com/elgie91/GrahamBoy/blob/master/dreamland.gif)
+! [Mario] (https://github.com/elgie91/GrahamBoy/blob/master/mario.gif)
 
 ## Controls
 | Keyboard Key | Function |
