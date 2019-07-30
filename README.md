@@ -21,7 +21,7 @@ Motivation for undergoing this project was to improve my C++ skills, learn more 
 * Allow for changing games without re-compiling (As of now, games are hard coded in the source)
 
 ## Gameplay
-! [CPU TESTS PASSED] (/images/Gameboy%20Emulator%202019-07-30%203_36_07%20PM.png)
+! [CPU TESTS PASSED] (Gameboy%20Emulator%202019-07-30%203_36_07%20PM.png)
 ! [TETRIS] (/images/tetris.gif)
 ! [DREAMLAND] (/images/dreamland.gif)
 ! [Mario] (/images/mario.gif)
